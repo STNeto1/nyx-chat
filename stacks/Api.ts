@@ -13,7 +13,7 @@ export function API({ stack }: StackContext) {
     routes: {
       $connect: "packages/functions/src/connect.handler",
       $disconnect: "packages/functions/src/disconnect.handler",
-      // sendmessage: "packages/functions/src/sendMessage.handler",
+      sendmessage: "packages/functions/src/sendMessage.handler",
     },
   });
 
