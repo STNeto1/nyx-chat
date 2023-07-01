@@ -16,17 +16,15 @@ import { Input } from "~/components/ui/input";
 import { FC, useState } from "react";
 import { Separator } from "~/components/ui/separator";
 
+const usernameSchema = z.object({
+  username: z.string(),
+});
+
 const sendMessageSchema = z.object({
   action: z.literal("sendmessage"),
-  username: z.string(),
   message: z.string(),
 });
 type Schema = z.infer<typeof sendMessageSchema>;
-const initialSchema: Schema = {
-  action: "sendmessage",
-  username: "Nyx",
-  message: "",
-};
 
 const receivedMessageSchema = z.object({
   username: z.string(),
@@ -36,6 +34,7 @@ const receivedMessageSchema = z.object({
 type MessageSchema = z.infer<typeof receivedMessageSchema>;
 
 function App() {
+  const [username, setUsername] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageSchema[]>([]);
 
   const { readyState, sendMessage } = useWebSocket(env.VITE_APP_API_URL, {
@@ -53,54 +52,68 @@ function App() {
 
   const form = useForm<Schema>({
     resolver: zodResolver(sendMessageSchema),
-    defaultValues: initialSchema,
+    defaultValues: {
+      action: "sendmessage",
+      message: "",
+    },
   });
   const onSubmit = (data: Schema) => {
-    sendMessage(JSON.stringify(data));
+    sendMessage(JSON.stringify({ ...data, username }));
 
-    form.reset(initialSchema);
+    form.reset({
+      action: "sendmessage",
+      message: "",
+    });
   };
 
   return (
     <section className="container max-w-2xl py-10 flex flex-col gap-8">
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="flex items-end gap-4"
-        >
-          <FormField
-            control={form.control}
-            name="message"
-            render={({ field }) => (
-              <FormItem className="w-full">
-                <FormLabel>Message</FormLabel>
-                <FormControl>
-                  <Input placeholder="Your message" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      {username ? (
+        <>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="flex items-end gap-4"
+            >
+              <FormField
+                control={form.control}
+                name="message"
+                render={({ field }) => (
+                  <FormItem className="w-full">
+                    <FormLabel>Message</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Your message" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <Button
-            type="submit"
-            disabled={!isEnabled || form.formState.isSubmitting}
-          >
-            Submit
-          </Button>
-        </form>
-      </Form>
+              <Button
+                type="submit"
+                disabled={!isEnabled || form.formState.isSubmitting}
+              >
+                Submit
+              </Button>
+            </form>
+          </Form>
 
-      <Separator />
+          <Separator />
 
-      <section className="flex flex-col gap-4">
-        {messages.map((elem, idx) => (
-          <Message
-            key={[elem.username, elem.timestamp, idx.toString()].join("__")}
-            {...elem}
-          />
-        ))}
-      </section>
+          <section className="flex flex-col gap-4">
+            {messages.map((elem, idx) => (
+              <Message
+                key={[elem.username, elem.timestamp, idx.toString()].join("__")}
+                {...elem}
+              />
+            ))}
+          </section>
+        </>
+      ) : (
+        <>
+          <UsernameForm onComplete={(usr) => setUsername(usr)} />
+        </>
+      )}
     </section>
   );
 }
@@ -119,6 +132,47 @@ const Message: FC<MessageSchema> = (props) => {
         {props.timestamp.toLocaleString()}
       </small>
     </div>
+  );
+};
+
+const UsernameForm: FC<{ onComplete: (username: string) => void }> = (
+  props
+) => {
+  const form = useForm<Schema>({
+    resolver: zodResolver(usernameSchema),
+    defaultValues: {
+      username: "",
+    },
+  });
+  const onSubmit = (data: Schema) => {
+    props.onComplete(data.username);
+  };
+
+  return (
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="flex items-end gap-4"
+      >
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem className="w-full">
+              <FormLabel>Username</FormLabel>
+              <FormControl>
+                <Input placeholder="Your username" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Button type="submit" disabled={form.formState.isSubmitting}>
+          Submit
+        </Button>
+      </form>
+    </Form>
   );
 };
 
