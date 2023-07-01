@@ -7,7 +7,7 @@ import { Message } from "@nyx-chat/core/message";
 const bodySchema = z.object({
   action: z.literal("sendmessage"),
   username: z.string(),
-  message: z.string(),
+  message: z.string().max(100),
 });
 
 export const handler: APIGatewayProxyHandler = async (evt) => {

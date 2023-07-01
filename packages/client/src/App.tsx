@@ -22,7 +22,7 @@ const usernameSchema = z.object({
 
 const sendMessageSchema = z.object({
   action: z.literal("sendmessage"),
-  message: z.string(),
+  message: z.string().max(100),
 });
 type Schema = z.infer<typeof sendMessageSchema>;
 
@@ -87,7 +87,7 @@ function App() {
   };
 
   return (
-    <section className="container max-w-2xl py-10 flex flex-col gap-8">
+    <section className="container max-w-4xl py-10 flex flex-col gap-8">
       {username ? (
         <>
           <Form {...form}>
@@ -141,11 +141,11 @@ function App() {
 const Message: FC<MessageSchema> = (props) => {
   return (
     <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 max-w-[80%]">
         <p className="text-sm text-muted-foreground">{props.username}: </p>
-        <small className="text-sm font-medium leading-none">
+        <p className="text-sm font-medium leading-none text-clip overflow-hidden">
           {props.message}
-        </small>
+        </p>
       </div>
 
       <small className="text-sm font-medium leading-none">
@@ -158,13 +158,13 @@ const Message: FC<MessageSchema> = (props) => {
 const UsernameForm: FC<{ onComplete: (username: string) => void }> = (
   props
 ) => {
-  const form = useForm<Schema>({
+  const form = useForm<z.infer<typeof usernameSchema>>({
     resolver: zodResolver(usernameSchema),
     defaultValues: {
       username: "",
     },
   });
-  const onSubmit = (data: Schema) => {
+  const onSubmit = (data: z.infer<typeof usernameSchema>) => {
     props.onComplete(data.username);
   };
 
