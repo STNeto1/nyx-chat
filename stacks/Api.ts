@@ -14,6 +14,7 @@ export function API({ stack }: StackContext) {
       $connect: "packages/functions/src/connect.handler",
       $disconnect: "packages/functions/src/disconnect.handler",
       sendmessage: "packages/functions/src/sendMessage.handler",
+      fetchmessages: "packages/functions/src/fetchMessages.handler",
     },
   });
 

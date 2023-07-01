@@ -31,23 +31,43 @@ const receivedMessageSchema = z.object({
   message: z.string(),
   timestamp: z.coerce.date(),
 });
+const multiMessageSchema = z.array(receivedMessageSchema);
+const messageUnionSchema = z.union([receivedMessageSchema, multiMessageSchema]);
+
 type MessageSchema = z.infer<typeof receivedMessageSchema>;
 
 function App() {
   const [username, setUsername] = useState<string | null>(null);
   const [messages, setMessages] = useState<MessageSchema[]>([]);
 
-  const { readyState, sendMessage } = useWebSocket(env.VITE_APP_API_URL, {
-    shouldReconnect: () => true,
-    onMessage: (event) => {
-      const wsMessage = receivedMessageSchema.safeParse(JSON.parse(event.data));
-      if (!wsMessage.success) {
-        return;
-      }
+  const { readyState, sendMessage } = useWebSocket(
+    env.VITE_APP_API_URL,
+    {
+      shouldReconnect: () => true,
+      onOpen: () => {
+        sendMessage(JSON.stringify({ action: "fetchmessages" }));
+      },
+      onMessage: (event) => {
+        if (!username) {
+          return;
+        }
 
-      setMessages((prev) => [...prev, wsMessage.data]);
+        const wsMessage = messageUnionSchema.safeParse(JSON.parse(event.data));
+        if (!wsMessage.success) {
+          console.log(wsMessage.error);
+          return;
+        }
+
+        if (Array.isArray(wsMessage.data)) {
+          setMessages(wsMessage.data);
+          return;
+        }
+
+        setMessages((prev) => [...prev, wsMessage.data as MessageSchema]);
+      },
     },
-  });
+    Boolean(username) // should connect only if username is set
+  );
   const isEnabled = readyState === ReadyState.OPEN;
 
   const form = useForm<Schema>({

@@ -2,6 +2,7 @@ import { APIGatewayProxyHandler } from "aws-lambda";
 import { z } from "zod";
 import { ApiGatewayManagementApi } from "aws-sdk";
 import { Connection } from "@nyx-chat/core/connection";
+import { Message } from "@nyx-chat/core/message";
 
 const bodySchema = z.object({
   action: z.literal("sendmessage"),
@@ -19,6 +20,13 @@ export const handler: APIGatewayProxyHandler = async (evt) => {
   }
 
   const { stage, domainName } = evt.requestContext;
+  const newMessage = await Message.createEntry(
+    evt.requestContext.connectionId ?? "-",
+    messageData.data.username,
+    messageData.data.message,
+    new Date().toISOString()
+  );
+
   const connections = await Connection.allEntries();
 
   const apiG = new ApiGatewayManagementApi({
@@ -32,9 +40,9 @@ export const handler: APIGatewayProxyHandler = async (evt) => {
         .postToConnection({
           ConnectionId: props.connectionID,
           Data: JSON.stringify({
-            username: messageData.data.username,
-            message: messageData.data.message,
-            timestamp: new Date().toISOString(),
+            username: newMessage.username,
+            message: newMessage.message,
+            timestamp: newMessage.timestamp,
           }),
         })
         .promise();
